@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header">
+    <h1>Контакты</h1>
+    <a href="/add" class="plus-btn">+</a>
+</div>
+
+<div class="search-box">
+    <input type="text" placeholder="Поиск контактов..." onclick="location.href='/search'">
+</div>
+
+<!-- Вкладки фильтрации -->
+<div class="category-tabs">
+    {% for cat in ['Все', 'Семья', 'Друзья', 'Работа', 'Другое'] %}
+    <a href="/?cat={{ cat }}" class="tab {% if active_cat == cat %}active{% endif %}">{{ cat }}</a>
+    {% endfor %}
+</div>
+
+<div style="overflow-y: auto; flex: 1; padding-bottom: 90px;">
+    {% for letter, items in grouped.items() %}
+        <div class="alphabet-label">{{ letter }}</div>
+        {% for c in items %}
+        <div class="contact-item" onclick="location.href='/edit/{{ c.id }}'">
+            <div class="avatar-circle" style="background: {% if c.category == 'Семья' %}#FF3366{% elif c.category == 'Работа' %}#00A3FF{% else %}#818CF8{% endif %};">
+                {{ c.name[0] }}
+            </div>
+            <div class="contact-info">
+                <b>{{ c.name }} {% if c.is_favorite %}⭐{% endif %}</b>
+                <span>{{ c.phone }}</span>
+            </div>
+            <div class="cat-badge" style="color: #9CA3AF; margin-left: auto;">...</div>
+        </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="phone-container">
+        {% block content %}{% endblock %}
+
+        <div class="nav-bar">
+    <a href="#" class="nav-item disabled"><i>🏠</i><br>Главная</a>
+    <a href="/contacts" class="nav-item {% if request.path == '/contacts' or request.path == '/' %}active{% endif %}"><i>👥</i><br>Контакты</a>
+    <a href="/search" class="nav-item {% if request.path == '/search' %}active{% endif %}"><i>🔍</i><br>Поиск</a>
+    <a href="#" class="nav-item"><i>📂</i><br>Категории</a>
+    <a href="#" class="nav-item"><i>📦</i><br>Данные</a>
+</div>
+    </div>
+</body>
+</html>

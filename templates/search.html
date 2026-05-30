@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header">
+    <h2 style="margin:0">🔍 Поиск</h2>
+</div>
+
+<div class="search-box">
+    <form action="/search" method="GET">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по имени, телефону...">
+        <input type="hidden" name="cat" value="{{ active_cat }}">
+    </form>
+</div>
+
+<div class="category-tabs">
+    {% for cat in ['Все', 'Семья', 'Друзья', 'Работа', 'Другое'] %}
+    <a href="/search?q={{ query }}&cat={{ cat }}" class="tab {% if active_cat == cat %}active{% endif %}">{{ cat }}</a>
+    {% endfor %}
+</div>
+
+<div style="flex: 1; overflow-y: auto; padding-bottom: 90px; text-align: center;">
+    {% if not query %}
+        <div style="margin-top: 50px;">
+            <img src="https://cdn-icons-png.flaticon.com/512/622/622669.png" width="120" style="opacity: 0.5;">
+            <h3 style="color: #333;">Начните поиск</h3>
+            <p style="color: #999;">Всего контактов: {{ total }}</p>
+        </div>
+    {% else %}
+        <p style="text-align: left; padding: 0 20px; font-size: 12px; color: #999;">Найдено: {{ total }}</p>
+        {% for c in results %}
+        <div class="contact-item" onclick="location.href='/edit/{{ c.id }}'">
+            <div class="avatar-circle">{{ c.name[0] }}</div>
+            <div class="contact-info" style="text-align: left;">
+                <b>{{ c.name }}</b>
+                <span>{{ c.phone }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
