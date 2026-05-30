@@ -1,36 +1,53 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>Контакты</h1>
-    <a href="/add" class="plus-btn">+</a>
-</div>
+<div class="px-6 pt-10 pb-40">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Контакты</h1>
+        <a href="/add" class="no-underline w-10 h-10 bg-[#C229F6] rounded-full flex items-center justify-center text-white shadow-lg text-2xl font-bold">+</a>
+    </div>
 
-<div class="search-box">
-    <input type="text" placeholder="Поиск контактов..." onclick="location.href='/search'">
-</div>
+    <div class="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+        <a href="/" class="no-underline px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap {{ 'bg-[#C229F6] text-white' if selected_category == 'Все' else 'bg-[#F3F4F6] text-gray-500' }}">Все</a>
+        {% for cat in ['Семья', 'Друзья', 'Работа', 'Другое'] %}
+        <a href="/?category={{ cat }}" class="no-underline px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap {{ 'bg-[#C229F6] text-white' if selected_category == cat else 'bg-[#F3F4F6] text-gray-500' }}">
+            {{ cat }}
+        </a>
+        {% endfor %}
+    </div>
 
-<!-- Вкладки фильтрации -->
-<div class="category-tabs">
-    {% for cat in ['Все', 'Семья', 'Друзья', 'Работа', 'Другое'] %}
-    <a href="/?cat={{ cat }}" class="tab {% if active_cat == cat %}active{% endif %}">{{ cat }}</a>
-    {% endfor %}
-</div>
-
-<div style="overflow-y: auto; flex: 1; padding-bottom: 90px;">
-    {% for letter, items in grouped.items() %}
-        <div class="alphabet-label">{{ letter }}</div>
-        {% for c in items %}
-        <div class="contact-item" onclick="location.href='/edit/{{ c.id }}'">
-            <div class="avatar-circle" style="background: {% if c.category == 'Семья' %}#FF3366{% elif c.category == 'Работа' %}#00A3FF{% else %}#818CF8{% endif %};">
-                {{ c.name[0] }}
+    <div class="space-y-6 mt-4">
+        {% for letter, items in grouped.items() %}
+        <div>
+            <div class="text-[#C229F6] font-bold text-sm uppercase mb-3 ml-1">{{ letter }}</div>
+            <div class="space-y-3">
+                {% for c in items %}
+                <a href="/edit/{{ c.id }}" class="no-underline bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-gray-50 block hover:bg-gray-50 transition-colors">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg {{ c.avatar_color }} relative shrink-0">
+                        {{ c.name[0]|upper }}{% if ' ' in c.name %}{{ c.name.split(' ')[1][0]|upper }}{% endif %}
+                        {% if c.is_favorite %}
+                        <div class="absolute -top-0.5 -right-0.5 bg-yellow-400 rounded-full p-0.5 border-2 border-white">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-gray-800 truncate">{{ c.name }}</h3>
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase
+                                {% if c.category == 'Семья' %}bg-rose-50 text-rose-500
+                                {% elif c.category == 'Работа' %}bg-blue-50 text-blue-500
+                                {% elif c.category == 'Друзья' %}bg-purple-50 text-purple-500
+                                {% else %}bg-orange-50 text-orange-500{% endif %}">
+                                {{ c.category }}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-400 font-medium">{{ c.phone }}</p>
+                    </div>
+                </a>
+                {% endfor %}
             </div>
-            <div class="contact-info">
-                <b>{{ c.name }} {% if c.is_favorite %}⭐{% endif %}</b>
-                <span>{{ c.phone }}</span>
-            </div>
-            <div class="cat-badge" style="color: #9CA3AF; margin-left: auto;">...</div>
         </div>
         {% endfor %}
-    {% endfor %}
+    </div>
 </div>
 {% endblock %}

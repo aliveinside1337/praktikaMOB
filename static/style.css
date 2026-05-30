@@ -1,64 +1,39 @@
-:root {
-    --primary: #C026D3;
-    --bg: #F9FAFB;
-    --gray: #9CA3AF;
+body {
+    background-color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
-body { background: #1a1a1a; font-family: 'Inter', sans-serif; display: flex; justify-content: center; margin: 0; }
-
-.phone-container {
-    width: 375px; height: 812px; background: white; position: relative;
-    overflow: hidden; display: flex; flex-direction: column;
+.max-w-md {
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 100vh;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    background: white;
 }
 
-/* Категории (Вкладки) */
-.category-tabs {
-    display: flex; gap: 8px; padding: 10px 20px; overflow-x: auto; white-space: nowrap;
-}
-.category-tabs::-webkit-scrollbar { display: none; }
-
-.tab {
-    padding: 8px 16px; border-radius: 20px; background: #F3F4F6;
-    color: #666; text-decoration: none; font-size: 14px; font-weight: 500;
-}
-.tab.active { background: var(--primary); color: white; }
-
-/* Карточки контактов */
-.contact-item {
-    background: white; margin: 8px 16px; padding: 12px; border-radius: 20px;
-    display: flex; align-items: center; border: 1px solid #F3F4F6;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer;
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
 
-/* Переключатель (Toggle Switch) */
-.switch {
-    position: relative; display: inline-block; width: 44px; height: 24px;
+.active-tab {
+    color: #C229F6 !important;
 }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc; transition: .4s; border-radius: 24px;
-}
-.slider:before {
-    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-    background-color: white; transition: .4s; border-radius: 50%;
-}
-input:checked + .slider { background-color: var(--primary); }
-input:checked + .slider:before { transform: translateX(20px); }
 
-/* Нижнее меню */
-.nav-bar {
-    position: absolute; bottom: 0; width: 100%; height: 75px;
-    background: white; border-top: 1px solid #EEE;
-    display: flex; justify-content: space-around; align-items: center; padding-bottom: 10px;
+.active-filter {
+    background-color: #C229F6 !important;
+    color: white !important;
 }
-.nav-item { text-align: center; text-decoration: none; color: var(--gray); font-size: 11px; font-weight: 500; }
-.nav-item.active { color: var(--primary); }
-.nav-item i { font-size: 24px; display: block; margin-bottom: 4px; }
-.nav-item.disabled { pointer-events: none; opacity: 0.5; }
 
-/* Стрелка назад */
-.back-arrow {
-    font-size: 28px; color: #111; text-decoration: none;
-    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-}
+/* Category colors */
+.btn-work.active { background-color: #00AEEF; color: white; border-color: transparent; }
+.btn-family.active { background-color: #FF2D55; color: white; border-color: transparent; }
+.btn-friends.active { background-color: #8E5AFA; color: white; border-color: transparent; }
+.btn-other.active { background-color: #FF9500; color: white; border-color: transparent; }
+
+.text-work { color: #00AEEF; }
+.bg-work-light { background-color: #E5F7FD; }
+/* ... and so on */
