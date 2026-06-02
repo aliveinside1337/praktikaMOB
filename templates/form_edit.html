@@ -1,0 +1,10 @@
+<form id="contactForm" data-mode="edit" data-id="{{EDIT_ID}}">
+  <h2 class="form-title">Редактировать контакт</h2>
+  <p class="form-subtitle">Изменения сохранятся в массиве contacts.</p>
+  {{FORM_FIELDS}}
+  <div class="grid grid-cols-1 gap-2 mt-4">
+    <button class="primary-btn" type="submit">Сохранить изменения</button>
+    <button class="danger-btn" type="button" data-delete-from-form="{{EDIT_ID}}">Удалить контакт</button>
+    <button class="secondary-btn" type="button" data-close-modal>Отмена</button>
+  </div>
+</form>
