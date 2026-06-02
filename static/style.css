@@ -28,7 +28,7 @@ body {
     color: white !important;
 }
 
-/* Category colors */
+/* Цвета категорий */
 .btn-work.active { background-color: #00AEEF; color: white; border-color: transparent; }
 .btn-family.active { background-color: #FF2D55; color: white; border-color: transparent; }
 .btn-friends.active { background-color: #8E5AFA; color: white; border-color: transparent; }
@@ -36,4 +36,3 @@ body {
 
 .text-work { color: #00AEEF; }
 .bg-work-light { background-color: #E5F7FD; }
-/* ... and so on */
