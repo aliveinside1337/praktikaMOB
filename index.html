@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ContactBook</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <div class="phone-shell" id="appShell">
+    <main id="app" class="app-main" aria-live="polite"></main>
+
+    <nav class="tabbar" id="tabbar" aria-label="Нижняя навигация"></nav>
+
+    <div class="modal-layer" id="modalLayer" aria-modal="true" role="dialog">
+      <div class="modal-card" id="modalCard"></div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       === ЛОГИКА ПРИЛОЖЕНИЯ ===
+       Загрузка шаблонов через fetch из templates/*.html
+       с заменой {{ПЛЕЙСХОЛДЕРОВ}}.
+    ========================================================== */
+
+    /* =========================================================
+       Модель данных (массив contacts)
+    ========================================================== */
+    const CATEGORIES = ['Семья', 'Друзья', 'Работа', 'Другое'];
+
+    let contacts = [
+      { id: 1, name: 'Мария Козлова',   phone: '+7 (920) 345-67-89', category: 'Семья',   initials: 'МК', isFavorite: true  },
+      { id: 2, name: 'Ольга Соколова',  phone: '+7 (960) 789-01-23', category: 'Семья',   initials: 'ОС', isFavorite: true  },
+      { id: 3, name: 'Иван Петров',     phone: '+7 (910) 123-45-67', category: 'Работа',  initials: 'ИП', isFavorite: false },
+      { id: 4, name: 'Анна Смирнова',   phone: '+7 (905) 222-33-44', category: 'Друзья',  initials: 'АС', isFavorite: true  },
+      { id: 5, name: 'Олег Новиков',    phone: '+7 (999) 555-66-77', category: 'Друзья',  initials: 'ОН', isFavorite: false },
+      { id: 6, name: 'Елена Морозова',  phone: '+7 (903) 444-55-66', category: 'Работа',  initials: 'ЕМ', isFavorite: false },
+      { id: 7, name: 'Дмитрий Волков',  phone: '+7 (926) 777-88-99', category: 'Работа',  initials: 'ДВ', isFavorite: false },
+      { id: 8, name: 'Татьяна Лебедева',phone: '+7 (901) 888-99-00', category: 'Другое',  initials: 'ТЛ', isFavorite: false }
+    ];
+
+    let activeTab = 'home';
+    let searchQuery = '';
+    let viewToken = 0;
+    let nextId = 9;
+    let touchTimer = null;
+    let templatesCache = {};
+    const scrollMemory = {};
+
+    const tabs = [
+      { id: 'home',       label: 'Главная',    icon: '🏠' },
+      { id: 'contacts',   label: 'Контакты',   icon: '👥' },
+      { id: 'search',     label: 'Поиск',      icon: '🔍' },
+      { id: 'categories', label: 'Категории',  icon: '📁' },
+      { id: 'data',       label: 'Данные',     icon: '📦' }
+    ];
+
+    const app        = document.getElementById('app');
+    const tabbar     = document.getElementById('tabbar');
+    const modalLayer = document.getElementById('modalLayer');
+    const modalCard  = document.getElementById('modalCard');
+
+    /* =========================================================
+       Вспомогательные функции (статистика, фильтрация)
+    ========================================================== */
+    function getStats() {
+      return {
+        total:      contacts.length,
+        favorites:  contacts.filter(c => c.isFavorite).length,
+        categories: CATEGORIES.length
+      };
+    }
+
+    function countByCategory(category) {
+      return contacts.filter(c => c.category === category).length;
+    }
+
+    function getSortedContacts(list = contacts) {
+      return [...list].sort((a, b) => {
+        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+        return a.name.localeCompare(b.name, 'ru');
+      });
+    }
+
+    function filterContacts(query) {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) return getSortedContacts();
+      return getSortedContacts().filter(c =>
+        `${c.name} ${c.phone} ${c.category}`.toLowerCase().includes(normalized)
+      );
+    }
+
+    function makeInitials(name) {
+      const parts = name.trim().split(/\s+/).filter(Boolean);
+      return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('') || '??';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/'/g, '&#39;');
+    }
+
+    function getAvatarColor(category) {
+      return {
+        'Семья':  'linear-gradient(135deg,#12c9c1,#02a9a6)',
+        'Друзья': 'linear-gradient(135deg,#c08b5b,#ad7448)',
+        'Работа': 'linear-gradient(135deg,#3b82f6,#06b6d4)',
+        'Другое': 'linear-gradient(135deg,#ff4b67,#ef4444)'
+      }[category] || 'linear-gradient(135deg,#8a2be2,#d946ef)';
+    }
+
+    function getCategoryGradient(category) {
+      return {
+        'Семья':  'linear-gradient(135deg,#ff304f,#d946ef)',
+        'Друзья': 'linear-gradient(135deg,#8b8b8b,#4b5563)',
+        'Работа': 'linear-gradient(135deg,#d1d5db,#6b7280)',
+        'Другое': 'linear-gradient(135deg,#d1d5db,#6b7280)'
+      }[category];
+    }
+
+    function getCategoryIcon(category) {
+      return { 'Семья':'👨👩‍👧', 'Друзья':'👥', 'Работа':'💼', 'Другое':'🎟️' }[category] || '📁';
+    }
+
+    function getProgressColor(category) {
+      return { 'Семья':'#ef4444', 'Друзья':'#d946ef', 'Работа':'#22d3ee', 'Другое':'#facc15' }[category] || '#8a2be2';
+    }
+
+    function findContact(id) {
+      return contacts.find(c => c.id === Number(id));
+    }
+
+    function validateImportedContacts(data) {
+      if (!Array.isArray(data)) return false;
+      return data.every(item =>
+        item && typeof item.name === 'string' && item.name.trim() &&
+        typeof item.phone === 'string' && item.phone.trim() &&
+        CATEGORIES.includes(item.category)
+      );
+    }
+
+    /* =========================================================
+       Функции рендера фрагментов (собирают HTML для плейсхолдеров)
+    ========================================================== */
+    function renderProgressRows() {
+      const total = Math.max(contacts.length, 1);
+      return CATEGORIES.map(category => {
+        const count   = countByCategory(category);
+        const percent = Math.round((count / total) * 100);
+        return `
+          <div class="progress-row">
+            <div class="progress-name">${category}</div>
+            <div class="progress-track"><div class="progress-fill" style="width:${percent}%;background:${getProgressColor(category)}"></div></div>
+            <div class="progress-count">${count} / ${percent}%</div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderContactCard(contact) {
+      return `
+        <article class="contact-card" data-contact-card="${contact.id}">
+          <button class="avatar" data-call-id="${contact.id}" style="background:${getAvatarColor(contact.category)}" aria-label="Позвонить ${escapeAttr(contact.name)}">${escapeHtml(contact.initials)}</button>
+          <div class="contact-info">
+            <div class="contact-name">${escapeHtml(contact.name)} ${contact.isFavorite ? '<span class="text-[#facc15]">★</span>' : ''}</div>
+            <div class="contact-phone">${escapeHtml(contact.phone)}</div>
+            <div class="contact-category">${escapeHtml(contact.category)}</div>
+          </div>
+          <div class="contact-actions">
+            <button class="icon-btn" data-toggle-favorite="${contact.id}" aria-label="Избранное">${contact.isFavorite ? '★' : '☆'}</button>
+            <button class="icon-btn" data-edit-id="${contact.id}" aria-label="Редактировать">✏️</button>
+            <button class="icon-btn" data-delete-id="${contact.id}" aria-label="Удалить">🗑️</button>
+          </div>
+        </article>`;
+    }
+
+    function renderCategoryBlock(category) {
+      const list = getSortedContacts(contacts.filter(c => c.category === category));
+      return `
+        <div class="category-block" id="cat-${category}">
+          <button class="category-toggle" data-toggle-category="${category}" style="background:${getCategoryGradient(category)}">
+            <span>${getCategoryIcon(category)} ${category}</span><span>${list.length}</span>
+          </button>
+          <div class="category-list" data-category-list="${category}">
+            ${list.length ? list.map(renderContactCard).join('') : `<div class="empty" style="min-height:80px">Нет контактов</div>`}
+          </div>
+        </div>`;
+    }
+
+    function renderCategoryCards() {
+      return CATEGORIES.map(cat => `
+        <button class="category-card" data-category-jump="${cat}" style="background:${getCategoryGradient(cat)}">
+          <span class="emoji">${getCategoryIcon(cat)}</span>
+          <span class="count">${countByCategory(cat)}</span>
+          <span class="name">${cat}</span>
+        </button>`).join('');
+    }
+
+    function renderFormFields(contact = {}) {
+      const category = contact.category || 'Семья';
+      return `
+        <div class="field">
+          <label for="nameInput">Имя *</label>
+          <input id="nameInput" name="name" value="${escapeAttr(contact.name || '')}" required placeholder="Например, Мария Козлова">
+        </div>
+        <div class="field">
+          <label for="phoneInput">Телефон *</label>
+          <input id="phoneInput" name="phone" value="${escapeAttr(contact.phone || '')}" required placeholder="+7 (900) 000-00-00">
+        </div>
+        <div class="field">
+          <label for="categoryInput">Категория</label>
+          <select id="categoryInput" name="category">
+            ${CATEGORIES.map(cat => `<option value="${cat}" ${cat === category ? 'selected' : ''}>${cat}</option>`).join('')}
+          </select>
+        </div>
+        <label class="check-row">
+          <input type="checkbox" name="isFavorite" ${contact.isFavorite ? 'checked' : ''}>
+          <span>Добавить в избранное</span>
+        </label>`;
+    }
+
+    function renderTabbar() {
+      tabbar.innerHTML = tabs.map(tab => `
+        <button class="tab-btn ${tab.id === activeTab ? 'active' : ''}" data-tab="${tab.id}" aria-label="${tab.label}">
+          <span class="tab-icon">${tab.icon}</span>
+          <span class="tab-label">${tab.label}</span>
+        </button>`).join('');
+    }
+
+    /* =========================================================
+       === ВСТРОЕННЫЕ ШАБЛОНЫ ===
+       Содержимое файлов templates/*.html продублировано здесь,
+       чтобы приложение работало без HTTP-сервера (через file://).
+       Файлы в папке templates/ остаются источником правды.
+    ========================================================== */
+    const TEMPLATES = {
+      'home': `<section class="hero">
+  <button class="settings" data-alert="Настройки ContactBook пока в разработке" aria-label="Настройки">⚙️</button>
+  <p class="text-[17px] font-black opacity-95 mb-1">Добро пожаловать!</p>
+  <h1 class="text-[30px] leading-none font-black tracking-[-0.03em]">ContactBook</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">Ваша личная адресная книга</p>
+  <div class="grid-3 mt-6">
+    <div class="stat-card"><div><div class="stat-icon">👥</div><div class="stat-num">{{STAT_TOTAL}}</div><div class="stat-label">Всего</div></div></div>
+    <div class="stat-card"><div><div class="stat-icon">⭐</div><div class="stat-num">{{STAT_FAV}}</div><div class="stat-label">Избранные</div></div></div>
+    <div class="stat-card"><div><div class="stat-icon"></div><div class="stat-num">{{STAT_CATS}}</div><div class="stat-label">Категорий</div></div></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Быстрые действия</h2>
+  <div class="grid-2">
+    <button class="action-card" data-open-new style="background:linear-gradient(135deg,#d946ef,#c45af2)"><span class="icon">➕</span><span class="label">Добавить контакт</span></button>
+    <button class="action-card" data-tab-go="contacts" style="background:linear-gradient(135deg,#13c4cf,#06a9bd)"><span class="icon">📇</span><span class="label">Все контакты</span></button>
+    <button class="action-card" data-tab-go="categories" style="background:linear-gradient(135deg,#ff5a66,#fb4959)"><span class="icon">📁</span><span class="label">По категориям</span></button>
+    <button class="action-card" data-tab-go="data" style="background:linear-gradient(135deg,#34d35f,#21b94d)"><span class="icon"></span><span class="label">Импорт/Экспорт</span></button>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">По категориям</h2>
+  <div class="panel">{{PROGRESS_BARS}}</div>
+</section>
+
+<section class="section">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="section-title !m-0">⭐Избранные</h2>
+    <button class="text-[#c026d3] font-black min-h-[44px] px-2" data-tab-go="categories">Все</button>
+  </div>
+  <div class="favorite-scroll">{{FAVORITES_LIST}}</div>
+</section>`,
+
+      'contacts': `<section class="hero compact">
+  <button class="settings" data-alert="Раздел в разработке" aria-label="Подсказка">⚙️</button>
+  <p class="text-[14px] font-black opacity-85 mb-1">ContactBook</p>
+  <h1 class="text-[30px] leading-none font-black tracking-[-0.03em]">Контакты</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">Список всех контактов</p>
+  <div class="hero-art">👥</div>
+</section>
+<section class="section">
+  <div class="panel">
+    <div class="placeholder">
+      <div class="big-emoji">🚧</div>
+      <div class="title">Раздел в разработке</div>
+      <div class="subtitle">Функция «Все контакты» появится в следующем обновлении.</div>
+    </div>
+  </div>
+</section>`,
+
+      'search': `<section class="hero compact">
+  <button class="settings" data-alert="Раздел в разработке" aria-label="Подсказка">⚙️</button>
+  <p class="text-[14px] font-black opacity-85 mb-1">ContactBook</p>
+  <h1 class="text-[30px] leading-none font-black tracking-[-0.03em]">Поиск</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">Поиск по контактам</p>
+  <div class="hero-art">🔍</div>
+</section>
+<section class="section">
+  <div class="panel">
+    <div class="placeholder">
+      <div class="big-emoji">🛠️</div>
+      <div class="title">Раздел в разработке</div>
+      <div class="subtitle">Поиск контактов скоро появится.</div>
+    </div>
+  </div>
+</section>`,
+
+      'categories': `<section class="hero compact">
+  <button class="settings" data-alert="Категории помогают быстро группировать контакты" aria-label="Подсказка">⚙️</button>
+  <h1 class="text-[30px] leading-none font-black tracking-[-0.03em] mt-6">Категории</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">{{CONTACTS_COUNT}} контактов - {{CATEGORIES_COUNT}} категории</p>
+  <div class="hero-art">📁</div>
+</section>
+<section class="section">
+  <div class="grid-2">{{CATEGORY_CARDS}}</div>
+</section>
+<section class="section">
+  {{CATEGORY_BLOCKS}}
+</section>`,
+
+      'data': `<section class="hero compact">
+  <button class="settings" data-alert="Импорт заменяет текущий массив contacts" aria-label="Подсказка">⚙️</button>
+  <h1 class="text-[28px] leading-none font-black tracking-[-0.03em] mt-6">Импорт/Экспорт</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">Управление данными контактов</p>
+  <div class="hero-art">📦</div>
+</section>
+<section class="section">
+  <div class="data-stat">
+    <div class="text-[36px] leading-none font-black">{{DATA_TOTAL}}</div>
+    <div class="font-black mt-1">Контактов в адресной строке</div>
+    <div class="text-[12px] font-bold opacity-90 mt-2">👨‍👩‍ Семья: {{CAT_FAMILY}} &nbsp; Друзья: {{CAT_FRIENDS}} &nbsp; 💼 Работа: {{CAT_WORK}}</div>
+  </div>
+</section>
+<section class="section">
+  <h2 class="section-title">📤 Экспорт данных</h2>
+  <button class="data-action" data-export="json" style="background:linear-gradient(135deg,#a855f7,#d8a5ff)"><span class="box">📄</span><span><b>Экспорт в JSON</b><br><small>для резервного копирования и переноса</small></span></button>
+  <button class="data-action" data-export="csv" style="background:linear-gradient(135deg,#22c55e,#8ff0bf)"><span class="box">📊</span><span><b>Экспорт в CSV</b><br><small>для Excel и таблиц</small></span></button>
+  <button class="data-action" data-export="vcard" style="background:linear-gradient(135deg,#06b6d4,#86e8ef)"><span class="box">📱</span><span><b>Экспорт в VCard</b><br><small>для импорта в телефон</small></span></button>
+</section>
+<section class="section">
+  <h2 class="section-title"> Импорт данных</h2>
+  <button class="data-action" data-import style="background:linear-gradient(135deg,#9ca3af,#6b7280); border:2px dashed rgba(255,255,255,0.7)"><span class="box">🗂️</span><span><b>Выбрать JSON файл</b><br><small>импорт контактов из резервной копии</small></span></button>
+  <input id="importInput" type="file" accept="application/json,.json" hidden>
+</section>`,
+
+      'form_new': `<form id="contactForm" data-mode="new">
+  <h2 class="form-title">Новый контакт</h2>
+  <p class="form-subtitle">Заполните имя, телефон и выберите категорию.</p>
+  {{FORM_FIELDS}}
+  <div class="btn-row">
+    <button class="secondary-btn" type="button" data-close-modal>Отмена</button>
+    <button class="primary-btn" type="submit">Сохранить</button>
+  </div>
+</form>`,
+
+      'form_edit': `<form id="contactForm" data-mode="edit" data-id="{{EDIT_ID}}">
+  <h2 class="form-title">Редактировать контакт</h2>
+  <p class="form-subtitle">Изменения сохранятся в массиве contacts.</p>
+  {{FORM_FIELDS}}
+  <div class="grid grid-cols-1 gap-2 mt-4">
+    <button class="primary-btn" type="submit">Сохранить изменения</button>
+    <button class="danger-btn" type="button" data-delete-from-form="{{EDIT_ID}}">Удалить контакт</button>
+    <button class="secondary-btn" type="button" data-close-modal>Отмена</button>
+  </div>
+</form>`
+    };
+
+    /* =========================================================
+       Загрузчик шаблонов с кэшем и заменой плейсхолдеров
+       Приоритет: встроенный TEMPLATES → кэш → fetch (HTTP)
+    ========================================================== */
+    async function loadTemplate(name, context = {}) {
+      let html = TEMPLATES[name] || templatesCache[name];
+
+      // Если нет в TEMPLATES и кэше — пробуем fetch (работает только через HTTP-сервер)
+      if (!html) {
+        try {
+          const response = await fetch(`templates/${name}.html`);
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          html = await response.text();
+          templatesCache[name] = html;
+        } catch (error) {
+          console.error(`Ошибка загрузки templates/${name}.html:`, error);
+          return `<div class="section"><div class="panel"><div class="placeholder">
+            <div class="big-emoji">⚠️</div>
+            <div class="title">Не удалось загрузить шаблон</div>
+            <div class="subtitle">${name}.html — проверьте, что файл открыт через HTTP-сервер</div>
+          </div></div></div>`;
+        }
+      }
+
+      // Замена {{KEY}} значений из контекста
+      for (const key of Object.keys(context)) {
+        html = html.replaceAll(`{{${key}}}`, context[key]);
+      }
+      // Удаление оставшихся плейсхолдеров (если контекст не передан)
+      html = html.replace(/\{\{[A-Z_]+\}\}/g, '');
+      return html;
+    }
+
+    /* =========================================================
+       Рендеринг конкретной вкладки
+    ========================================================== */
+    async function getTabHtml(tabId) {
+      switch (tabId) {
+        case 'home': {
+          const s = getStats();
+          const favorites = getSortedContacts().filter(c => c.isFavorite);
+          return loadTemplate('home', {
+            STAT_TOTAL: s.total,
+            STAT_FAV:   s.favorites,
+            STAT_CATS:  s.categories,
+            PROGRESS_BARS: renderProgressRows(),
+            FAVORITES_LIST: favorites.length
+              ? favorites.map(c => `
+                  <button class="favorite-chip" data-call-id="${c.id}">
+                    <div class="avatar large mx-auto" style="background:${getAvatarColor(c.category)}">${c.initials}</div>
+                    <div class="text-[12px] font-extrabold text-[#626577] mt-2 truncate">${escapeHtml(c.name.split(' ')[0])}</div>
+                  </button>`).join('')
+              : `<div class="empty" style="width:100%">Избранных контактов пока нет</div>`
+          });
+        }
+        case 'categories': {
+          return loadTemplate('categories', {
+            CONTACTS_COUNT:  contacts.length,
+            CATEGORIES_COUNT: CATEGORIES.length,
+            CATEGORY_CARDS:  renderCategoryCards(),
+            CATEGORY_BLOCKS: CATEGORIES.map(renderCategoryBlock).join('')
+          });
+        }
+        case 'data': {
+          return loadTemplate('data', {
+            DATA_TOTAL: contacts.length,
+            CAT_FAMILY: countByCategory('Семья'),
+            CAT_FRIENDS: countByCategory('Друзья'),
+            CAT_WORK:   countByCategory('Работа')
+          });
+        }
+        case 'contacts':
+        case 'search':
+          return loadTemplate(tabId);
+        default:
+          return loadTemplate('home');
+      }
+    }
+
+    /* =========================================================
+       Функция плавной смены вкладок с анимацией
+    ========================================================== */
+    async function switchTab(tabId, options = {}) {
+      if (!tabs.some(t => t.id === tabId)) return;
+      scrollMemory[activeTab] = app.scrollTop;
+      activeTab = tabId;
+      renderTabbar();
+
+      const token = ++viewToken;
+      app.innerHTML = '';
+      // Минимальный индикатор загрузки (чтобы пользователь видел, что что-то происходит)
+      app.innerHTML = `<div class="section"><div class="panel" style="min-height:160px;display:grid;place-items:center;color:#8b8e9f;font-weight:850">⏳ Загрузка…</div></div>`;
+
+      const html = await getTabHtml(tabId);
+      if (token !== viewToken) return;
+
+      const view = document.createElement('div');
+      view.className = 'view-animate';
+      view.innerHTML = html;
+      app.innerHTML = '';
+      app.appendChild(view);
+
+      bindViewEvents();
+
+      const shouldRestore = options.restoreScroll !== false;
+      requestAnimationFrame(() => {
+        app.scrollTop = shouldRestore ? (scrollMemory[tabId] || 0) : 0;
+      });
+    }
+
+    function refreshCurrentView() {
+      switchTab(activeTab, { restoreScroll: true });
+    }
+
+    /* =========================================================
+       CRUD операции
+    ========================================================== */
+    function createContact(form) {
+      const formData = new FormData(form);
+      const name  = formData.get('name').trim();
+      const phone = formData.get('phone').trim();
+      if (!name || !phone) { alert('Заполните обязательные поля: имя и телефон.'); return; }
+      contacts.push({
+        id:         nextId++,
+        name,
+        phone,
+        category:   formData.get('category'),
+        initials:   makeInitials(name),
+        isFavorite: formData.has('isFavorite')
+      });
+      closeModal();
+      refreshCurrentView();
+    }
+
+    function updateContact(form) {
+      const id      = Number(form.dataset.id);
+      const contact = findContact(id);
+      if (!contact) return;
+      const formData = new FormData(form);
+      const name  = formData.get('name').trim();
+      const phone = formData.get('phone').trim();
+      if (!name || !phone) { alert('Заполните обязательные поля: имя и телефон.'); return; }
+      contact.name        = name;
+      contact.phone       = phone;
+      contact.category    = formData.get('category');
+      contact.initials    = makeInitials(name);
+      contact.isFavorite  = formData.has('isFavorite');
+      closeModal();
+      refreshCurrentView();
+    }
+
+    function deleteContact(id) {
+      const contact = findContact(id);
+      if (!contact) return;
+      if (!confirm(`Удалить контакт "${contact.name}"?`)) return;
+      contacts = contacts.filter(c => c.id !== Number(id));
+      closeModal();
+      refreshCurrentView();
+    }
+
+    function toggleFavorite(id) {
+      const contact = findContact(id);
+      if (!contact) return;
+      contact.isFavorite = !contact.isFavorite;
+      refreshCurrentView();
+    }
+
+    /* =========================================================
+       Модальные окна (form_new / form_edit)
+    ========================================================== */
+    async function openNewForm() {
+      modalCard.innerHTML = await loadTemplate('form_new', { FORM_FIELDS: renderFormFields() });
+      modalLayer.classList.add('open');
+      bindModalEvents();
+      setTimeout(() => document.getElementById('nameInput')?.focus(), 60);
+    }
+
+    async function openEditForm(id) {
+      const contact = findContact(id);
+      if (!contact) return;
+      modalCard.innerHTML = await loadTemplate('form_edit', {
+        EDIT_ID:     contact.id,
+        FORM_FIELDS: renderFormFields(contact)
+      });
+      modalLayer.classList.add('open');
+      bindModalEvents();
+    }
+
+    function closeModal() {
+      modalLayer.classList.remove('open');
+      modalCard.innerHTML = '';
+    }
+
+    /* =========================================================
+       Импорт/экспорт
+    ========================================================== */
+    function exportData(type) {
+      if (type === 'json') { alert(JSON.stringify(contacts, null, 2)); return; }
+      if (type === 'csv') {
+        const rows = ['name,phone,category,isFavorite', ...contacts.map(c => `"${c.name}","${c.phone}","${c.category}","${c.isFavorite}"`)];
+        alert(rows.join('\n'));
+        return;
+      }
+      const vcard = contacts.map(c =>
+        `BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL:${c.phone}\nCATEGORIES:${c.category}\nEND:VCARD`
+      ).join('\n\n');
+      alert(vcard);
+    }
+
+    function importJsonFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = event => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (!validateImportedContacts(data)) {
+            alert('Ошибка импорта: JSON должен быть массивом контактов с полями name, phone, category.');
+            return;
+          }
+          contacts = data.map((item, index) => ({
+            id:         Number(item.id) || index + 1,
+            name:       item.name.trim(),
+            phone:      item.phone.trim(),
+            category:   item.category,
+            initials:   item.initials || makeInitials(item.name),
+            isFavorite: Boolean(item.isFavorite)
+          }));
+          nextId = Math.max(0, ...contacts.map(c => c.id)) + 1;
+          alert('Импорт завершен. Данные контактов заменены.');
+          refreshCurrentView();
+        } catch (error) {
+          alert('Не удалось прочитать JSON файл. Проверьте формат.');
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    /* =========================================================
+       Обработчики событий
+    ========================================================== */
+    function bindViewEvents() {
+      document.querySelectorAll('[data-contact-card]').forEach(card => bindLongPress(card));
+    }
+
+    function bindLongPress(card) {
+      if (card.dataset.boundLongpress) return;
+      card.dataset.boundLongpress = 'true';
+      const id = card.dataset.contactCard;
+
+      card.addEventListener('contextmenu', e => { e.preventDefault(); openEditForm(id); });
+      card.addEventListener('touchstart', () => {
+        touchTimer = setTimeout(() => openEditForm(id), 620);
+      }, { passive: true });
+      ['touchend', 'touchmove', 'touchcancel'].forEach(t => {
+        card.addEventListener(t, () => clearTimeout(touchTimer), { passive: true });
+      });
+    }
+
+    function bindModalEvents() {
+      const form = document.getElementById('contactForm');
+      if (form) {
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          form.dataset.mode === 'edit' ? updateContact(form) : createContact(form);
+        });
+      }
+    }
+
+    tabbar.addEventListener('click', e => {
+      const tab = e.target.closest('[data-tab]');
+      if (tab) switchTab(tab.dataset.tab, { restoreScroll: true });
+    });
+
+    app.addEventListener('click', e => {
+      const target = e.target;
+
+      const tabGo = target.closest('[data-tab-go]');
+      if (tabGo) return switchTab(tabGo.dataset.tabGo, { restoreScroll: false });
+
+      if (target.closest('[data-open-new]')) return openNewForm();
+
+      const call = target.closest('[data-call-id]');
+      if (call) {
+        const c = findContact(call.dataset.callId);
+        if (c) alert(`${c.name}: ${c.phone}`);
+        return;
+      }
+
+      const edit = target.closest('[data-edit-id]');
+      if (edit) return openEditForm(edit.dataset.editId);
+
+      const del = target.closest('[data-delete-id]');
+      if (del) return deleteContact(del.dataset.deleteId);
+
+      const fav = target.closest('[data-toggle-favorite]');
+      if (fav) return toggleFavorite(fav.dataset.toggleFavorite);
+
+      const alertButton = target.closest('[data-alert]');
+      if (alertButton) return alert(alertButton.dataset.alert);
+
+      const categoryJump = target.closest('[data-category-jump]');
+      if (categoryJump) {
+        document.getElementById(`cat-${categoryJump.dataset.categoryJump}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      const categoryToggle = target.closest('[data-toggle-category]');
+      if (categoryToggle) {
+        const list = document.querySelector(`[data-category-list="${categoryToggle.dataset.toggleCategory}"]`);
+        if (list) list.hidden = !list.hidden;
+        return;
+      }
+
+      const exportButton = target.closest('[data-export]');
+      if (exportButton) return exportData(exportButton.dataset.export);
+
+      const importButton = target.closest('[data-import]');
+      if (importButton) return document.getElementById('importInput')?.click();
+    });
+
+    app.addEventListener('change', e => {
+      if (e.target.id === 'importInput') {
+        importJsonFile(e.target.files[0]);
+        e.target.value = '';
+      }
+    });
+
+    modalLayer.addEventListener('click', e => {
+      if (e.target === modalLayer || e.target.closest('[data-close-modal]')) closeModal();
+      const deleteFromForm = e.target.closest('[data-delete-from-form]');
+      if (deleteFromForm) deleteContact(deleteFromForm.dataset.deleteFromForm);
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* =========================================================
+       Инициализация приложения
+    ========================================================== */
+    renderTabbar();
+    switchTab('home', { restoreScroll: false });
+  </script>
+</body>
+</html>
