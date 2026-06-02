@@ -1,1 +1,24 @@
-
+<section class="hero compact">
+  <button class="settings" data-alert="Импорт заменяет текущий массив contacts" aria-label="Подсказка">⚙️</button>
+  <h1 class="text-[28px] leading-none font-black tracking-[-0.03em] mt-6">Импорт/Экспорт</h1>
+  <p class="text-[13px] font-bold opacity-85 mt-2">Управление данными контактов</p>
+  <div class="hero-art">📦</div>
+</section>
+<section class="section">
+  <div class="data-stat">
+    <div class="text-[36px] leading-none font-black">{{DATA_TOTAL}}</div>
+    <div class="font-black mt-1">Контактов в адресной строке</div>
+    <div class="text-[12px] font-bold opacity-90 mt-2">👨‍👩‍👧 Семья: {{CAT_FAMILY}} &nbsp;  Друзья: {{CAT_FRIENDS}} &nbsp; 💼 Работа: {{CAT_WORK}}</div>
+  </div>
+</section>
+<section class="section">
+  <h2 class="section-title">📤 Экспорт данных</h2>
+  <button class="data-action" data-export="json" style="background:linear-gradient(135deg,#a855f7,#d8a5ff)"><span class="box">📄</span><span><b>Экспорт в JSON</b><br><small>для резервного копирования и переноса</small></span></button>
+  <button class="data-action" data-export="csv" style="background:linear-gradient(135deg,#22c55e,#8ff0bf)"><span class="box">📊</span><span><b>Экспорт в CSV</b><br><small>для Excel и таблиц</small></span></button>
+  <button class="data-action" data-export="vcard" style="background:linear-gradient(135deg,#06b6d4,#86e8ef)"><span class="box">📱</span><span><b>Экспорт в VCard</b><br><small>для импорта в телефон</small></span></button>
+</section>
+<section class="section">
+  <h2 class="section-title"> Импорт данных</h2>
+  <button class="data-action" data-import style="background:linear-gradient(135deg,#9ca3af,#6b7280); border:2px dashed rgba(255,255,255,0.7)"><span class="box">🗂️</span><span><b>Выбрать JSON файл</b><br><small>импорт контактов из резервной копии</small></span></button>
+  <input id="importInput" type="file" accept="application/json,.json" hidden>
+</section>
