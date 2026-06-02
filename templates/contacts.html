@@ -1,53 +1,85 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="px-6 pt-10 pb-40">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Контакты</h1>
-        <a href="/add" class="no-underline w-10 h-10 bg-[#C229F6] rounded-full flex items-center justify-center text-white shadow-lg text-2xl font-bold">+</a>
-    </div>
-
-    <div class="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-        <a href="/" class="no-underline px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap {{ 'bg-[#C229F6] text-white' if selected_category == 'Все' else 'bg-[#F3F4F6] text-gray-500' }}">Все</a>
-        {% for cat in ['Семья', 'Друзья', 'Работа', 'Другое'] %}
-        <a href="/?category={{ cat }}" class="no-underline px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap {{ 'bg-[#C229F6] text-white' if selected_category == cat else 'bg-[#F3F4F6] text-gray-500' }}">
-            {{ cat }}
-        </a>
-        {% endfor %}
-    </div>
-
-    <div class="space-y-6 mt-4">
-        {% for letter, items in grouped.items() %}
-        <div>
-            <div class="text-[#C229F6] font-bold text-sm uppercase mb-3 ml-1">{{ letter }}</div>
-            <div class="space-y-3">
-                {% for c in items %}
-                <a href="/edit/{{ c.id }}" class="no-underline bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-gray-50 block hover:bg-gray-50 transition-colors">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg {{ c.avatar_color }} relative shrink-0">
-                        {{ c.name[0]|upper }}{% if ' ' in c.name %}{{ c.name.split(' ')[1][0]|upper }}{% endif %}
-                        {% if c.is_favorite %}
-                        <div class="absolute -top-0.5 -right-0.5 bg-yellow-400 rounded-full p-0.5 border-2 border-white">
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                            <h3 class="font-bold text-gray-800 truncate">{{ c.name }}</h3>
-                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase
-                                {% if c.category == 'Семья' %}bg-rose-50 text-rose-500
-                                {% elif c.category == 'Работа' %}bg-blue-50 text-blue-500
-                                {% elif c.category == 'Друзья' %}bg-purple-50 text-purple-500
-                                {% else %}bg-orange-50 text-orange-500{% endif %}">
-                                {{ c.category }}
-                            </span>
-                        </div>
-                        <p class="text-sm text-gray-400 font-medium">{{ c.phone }}</p>
-                    </div>
-                </a>
-                {% endfor %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Контакты</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body class="flex justify-center">
+    <div class="w-full max-w-md bg-white min-h-screen relative flex flex-col shadow-xl">
+        <main class="flex-1 overflow-y-auto px-6 pt-10 pb-32">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">Контакты</h1>
+                <a href="form_new.html" class="w-10 h-10 bg-[#C229F6] rounded-full flex items-center justify-center text-white shadow-lg text-2xl no-underline">+</a>
             </div>
-        </div>
-        {% endfor %}
+
+            <!-- Поиск -->
+            <div class="relative mb-6">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</div>
+                <input type="text" placeholder="Поиск контактов..." class="w-full bg-[#F3F4F6] rounded-2xl py-3.5 pl-12 pr-4 outline-none border-none text-sm">
+            </div>
+
+            <!-- Список -->
+            <div class="space-y-6 mt-4">
+                <div>
+                    <div class="text-[#C229F6] font-bold text-sm uppercase mb-3 ml-1">А</div>
+                    <div class="space-y-3">
+                        <!-- Алексей Морозов (Синий: #5D9CEC) -->
+                        <a href="form_edit.html?name=Алексей Морозов&phone=%2B7 (950) 678-90-12&email=alex@mail.ru&cat=Другое&color=%235D9CEC&address=г. Нижний Новгород, ул. Пушкина, д. 12"
+                           class="no-underline bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-gray-50 block hover:bg-gray-50 transition-all">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold bg-[#5D9CEC]">AM</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-gray-800 truncate">Алексей Морозов</h3>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-orange-50 text-orange-500">Другое</span>
+                                </div>
+                                <p class="text-sm text-gray-400 font-medium">+7 (950) 678-90-12</p>
+                            </div>
+                        </a>
+
+                        <!-- Анна Смирнова (Зеленый: #2ECC71) -->
+                        <a href="form_edit.html?name=Анна Смирнова&phone=%2B7 (900) 123-45-67&email=anna@mail.ru&cat=Друзья&color=%232ECC71&address=г. Москва, пр-т Мира, д. 45"
+                           class="no-underline bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-gray-50 block hover:bg-gray-50 transition-all">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold bg-[#2ECC71] relative">AC
+                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-gray-800 truncate">Анна Смирнова</h3>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-purple-50 text-purple-500">Друзья</span>
+                                </div>
+                                <p class="text-sm text-gray-400 font-medium">+7 (900) 123-45-67</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[#C229F6] font-bold text-sm uppercase mb-3 ml-1">Д</div>
+                    <!-- Дмитрий Новиков (Голубой: #4FC1E9) -->
+                    <a href="form_edit.html?name=Дмитрий Новиков&phone=%2B7 (930) 456-78-90&email=dima@mail.ru&cat=Работа&color=%234FC1E9&address=г. Казань, ул. Баумана, д. 5"
+                       class="no-underline bg-white rounded-[28px] p-4 flex items-center gap-4 shadow-sm border border-gray-50 block hover:bg-gray-50 transition-all">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold bg-[#4FC1E9]">ДН</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-gray-800 truncate">Дмитрий Новиков</h3>
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-blue-50 text-blue-500">Работа</span>
+                            </div>
+                            <p class="text-sm text-gray-400">+7 (930) 456-78-90</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-4 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+            <a href="home.html" class="text-gray-300 flex flex-col items-center gap-1 no-underline font-bold text-[9px]">🏠 <span>Главная</span></a>
+            <a href="contacts.html" class="text-[#C229F6] flex flex-col items-center gap-1 no-underline font-bold text-[9px]">👥 <span>Контакты</span></a>
+            <a href="search.html" class="text-gray-300 flex flex-col items-center gap-1 no-underline font-bold text-[9px]">🔍 <span>Поиск</span></a>
+            <a href="categories.html" class="text-gray-300 flex flex-col items-center gap-1 no-underline font-bold text-[9px]">📦 <span>Категории</span></a>
+            <a href="data.html" class="text-gray-300 flex flex-col items-center gap-1 no-underline font-bold text-[9px]">⚙️ <span>Данные</span></a>
+        </nav>
     </div>
-</div>
-{% endblock %}
+</body>
+</html>
