@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль контакта</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="phone-screen">
+        <div class="profile-header">
+            <div class="top-nav">
+                <a href="home.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
+                <div style="display: flex; gap: 10px;">
+                    <a href="#" class="nav-btn"><i class="far fa-star"></i></a>
+                    <a href="form_edit.html" class="nav-btn"><i class="fas fa-pen"></i></a>
+                </div>
+            </div>
+            <div class="profile-img-container">
+                <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=1000&auto=format&fit=crop" alt="Profile">
+            </div>
+            <h1 class="profile-name">Алексей Морозов</h1>
+            <div class="tag-btn">Другое</div>
+        </div>
+
+        <div class="quick-actions">
+            <a href="tel:+79506789012" class="action-card">
+                <i class="fas fa-phone"></i>
+                <span>Позвонить</span>
+            </a>
+            <a href="#" class="action-card">
+                <i class="fas fa-comment-dots"></i>
+                <span>SMS</span>
+            </a>
+            <a href="mailto:alex.morozov@mail.ru" class="action-card">
+                <i class="fas fa-envelope"></i>
+                <span>Email</span>
+            </a>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <div class="info-row">
+                    <div class="info-icon"><i class="fas fa-phone-alt"></i></div>
+                    <div class="info-content">
+                        <span class="info-label">Телефон</span>
+                        <span class="info-value">+7 (950) 678-90-12</span>
+                    </div>
+                    <div class="note-icon"><i class="far fa-sticky-note"></i></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="info-content">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">alex.moroZOV@mail.ru</span>
+                    </div>
+                    <div class="note-icon"><i class="far fa-sticky-note"></i></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="data-list-row">
+                    <span class="data-label">Категория</span>
+                    <span class="data-value badge">Другое</span>
+                </div>
+                <div class="data-list-row">
+                    <span class="data-label">Добавлен</span>
+                    <span class="data-value">11.05.2026</span>
+                </div>
+                <div class="data-list-row">
+                    <span class="data-label">Избранный</span>
+                    <span class="data-value">Нет</span>
+                </div>
+            </div>
+
+            <button class="delete-btn">
+                <i class="fas fa-trash-alt"></i>
+                Удалить контакт
+            </button>
+        </div>
+    </div>
+</body>
+</html>
