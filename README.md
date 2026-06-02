@@ -6,7 +6,7 @@
 ## Технологии
 *   **Backend**: FastAPI (Python)
 *   **Database**: SQLite (SQLAlchemy)
-*   **Frontend**: HTML, CSS (Tailwind), JavaScript
+*   **Frontend**: HTML, CSS (Tailwind)
 
 ## Установка и запуск
 1. `pip install fastapi uvicorn sqlalchemy jinja2 python-multipart`
